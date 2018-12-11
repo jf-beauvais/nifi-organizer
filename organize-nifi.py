@@ -16,16 +16,15 @@ COMPONENT_TYPE_FUNNEL = 'FUNNEL'
 
 ### Define component type to component dimensions map here ###
 # Tuple represents (width, height) of component
-# TODO: Gather accurate values for component dimensions
 COMPONENT_DIMENSIONS_MAP = {
-    COMPONENT_TYPE_PROCESS_GROUP: (100, 20),
-    COMPONENT_TYPE_REMOTE_PROCESS_GROUP: (100, 20),
-    COMPONENT_TYPE_PROCESSOR: (80, 15),
-    COMPONENT_TYPE_INPUT_PORT: (50, 12),
-    COMPONENT_TYPE_OUTPUT_PORT: (50, 12),
+    COMPONENT_TYPE_PROCESS_GROUP: (380, 175),
+    COMPONENT_TYPE_REMOTE_PROCESS_GROUP: (380, 160),
+    COMPONENT_TYPE_PROCESSOR: (370, 130),
+    COMPONENT_TYPE_INPUT_PORT: (240, 50),
+    COMPONENT_TYPE_OUTPUT_PORT: (240, 50),
     # TODO: Allow for parsing of label dimensions from Nifi API responses
-    COMPONENT_TYPE_LABEL: (30, 12),
-    COMPONENT_TYPE_FUNNEL: (8, 8)
+    COMPONENT_TYPE_LABEL: (150, 150),
+    COMPONENT_TYPE_FUNNEL: (50, 50)
 }
 
 # Define map of component type to lambda that updates the component's position
