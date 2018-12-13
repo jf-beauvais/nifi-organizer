@@ -179,8 +179,6 @@ for node in graph.nodes():
     nodeName = node.get_name()
     nifiComponent = constructNifiReferenceFromString(nodeName)
 
-    # TODO: Create a static map of lambdas that defines how to take a component and a new tuple representing
-    # the new position and invokes the API to update the position
     nifiComponentId = nifiComponent.id
     nifiComponentType = nifiComponent.typeName
     newPosition = nipyapi.nifi.models.position_dto.PositionDTO(newX, newY)
