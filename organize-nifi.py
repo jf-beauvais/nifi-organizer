@@ -167,6 +167,14 @@ graph.layout(prog='sfdp') # dot is for directed graphs. sfdp is a force-directed
 
 # Iterate over graph nodes, submitting API calls to Nifi to re-position corresponding Nifi component
 print 'Updating components on Nifi'
+processGroupsApi = nipyapi.nifi.apis.process_groups_api.ProcessGroupsApi()
+remoteProcessGroupsApi = nipyapi.nifi.apis.remote_process_groups_api.RemoteProcessGroupsApi()
+processorsApi = nipyapi.nifi.apis.processors_api.ProcessorsApi()
+inputPortsApi = nipyapi.nifi.apis.input_ports_api.InputPortsApi()
+outputPortsApi = nipyapi.nifi.apis.output_ports_api.OutputPortsApi()
+labelsApi = nipyapi.nifi.apis.labels_api.LabelsApi()
+funnelsApi = nipyapi.nifi.apis.funnel_api.FunnelApi()
+
 for node in graph.nodes():
     nodePosition = node.attr['pos']
     (newX, newY) = [float(val) for val in nodePosition.split(',')]
@@ -178,21 +186,19 @@ for node in graph.nodes():
     nifiComponentId = nifiComponent.id
     nifiComponentType = nifiComponent.typeName
     newPosition = nipyapi.nifi.models.position_dto.PositionDTO(newX, newY)
-    print 'component id ' + nifiComponentId + ' type ' + nifiComponentType + ' newX ' + str(newX) + ' newY ' + str(newY)
 
-    # TODO: Create API objects once and reuse them
     if nifiComponentType == COMPONENT_TYPE_PROCESS_GROUP:
-        processGroup = nipyapi.nifi.apis.process_groups_api.ProcessGroupsApi().get_process_group(nifiComponentId)
+        processGroup = processGroupsApi.get_process_group(nifiComponentId)
         processGroup.component.position = newPosition
-        nipyapi.nifi.apis.process_groups_api.ProcessGroupsApi().update_process_group(nifiComponentId, processGroup)
+        processGroupsApi.update_process_group(nifiComponentId, processGroup)
 
     elif nifiComponentType == COMPONENT_TYPE_REMOTE_PROCESS_GROUP:
-        remoteProcessGroup = nipyapi.nifi.apis.remote_process_groups_api.RemoteProcessGroupsApi().get_remote_process_group(nifiComponentId)
+        remoteProcessGroup = remoteProcessGroupsApi.get_remote_process_group(nifiComponentId)
         remoteProcessGroup.component.position = newPosition
-        nipyapi.nifi.apis.remote_process_groups_api.RemoteProcessGroupsApi().update_remote_process_group(nifiComponentId, remoteProcessGroup)
+        remoteProcessGroupsApi.update_remote_process_group(nifiComponentId, remoteProcessGroup)
 
     elif nifiComponentType == COMPONENT_TYPE_PROCESSOR:
-        retrievedProcessor = nipyapi.nifi.apis.processors_api.ProcessorsApi().get_processor(nifiComponentId)
+        retrievedProcessor = processorsApi.get_processor(nifiComponentId)
 
         processorDto = nipyapi.nifi.models.ProcessorDTO()
         processorDto.position = newPosition
@@ -202,27 +208,27 @@ for node in graph.nodes():
         processor.revision = retrievedProcessor.revision
         processor.id = nifiComponentId
 
-        nipyapi.nifi.apis.processors_api.ProcessorsApi().update_processor(nifiComponentId, processor)
+        processorsApi.update_processor(nifiComponentId, processor)
 
     elif nifiComponentType == COMPONENT_TYPE_INPUT_PORT:
-        inputPort = nipyapi.nifi.apis.input_ports_api.InputPortsApi().get_input_port(nifiComponentId)
+        inputPort = inputPortsApi.get_input_port(nifiComponentId)
         inputPort.component.position = newPosition
-        nipyapi.nifi.apis.input_ports_api.InputPortsApi().update_input_port(nifiComponentId, inputPort)
+        inputPortsApi.update_input_port(nifiComponentId, inputPort)
 
     elif nifiComponentType == COMPONENT_TYPE_OUTPUT_PORT:
-        outputPort = nipyapi.nifi.apis.output_ports_api.OutputPortsApi().get_output_port(nifiComponentId)
+        outputPort = outputPortsApi.get_output_port(nifiComponentId)
         outputPort.component.position = newPosition
-        nipyapi.nifi.apis.output_ports_api.OutputPortsApi().update_output_port(nifiComponentId, outputPort)
+        outputPortsApi.update_output_port(nifiComponentId, outputPort)
 
     elif nifiComponentType == COMPONENT_TYPE_LABEL:
-        label = nipyapi.nifi.apis.labels_api.LabelsApi().get_label(nifiComponentId)
+        label = labelsApi.get_label(nifiComponentId)
         label.component.position = newPosition
-        nipyapi.nifi.apis.labels_api.LabelsApi().update_label(nifiComponentId, label)
+        labelsApi.update_label(nifiComponentId, label)
 
     elif nifiComponentType == COMPONENT_TYPE_FUNNEL:
-        funnel = nipyapi.nifi.apis.funnel_api.FunnelApi().get_funnel(nifiComponentId)
+        funnel = funnelsApi.get_funnel(nifiComponentId)
         funnel.component.position = newPosition
-        nipyapi.nifi.apis.funnel_api.FunnelApi().update_funnel(nifiComponentId, funnel)
+        funnelsApi.update_funnel(nifiComponentId, funnel)
         
     else:
         sys.stderr.write("Unknown component type: " + nifiComponentType)
