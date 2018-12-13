@@ -1,6 +1,4 @@
 import pygraphviz
-# TODO: If we are only making a small number of requests, switch to using requests package and invoking API
-# manually, since nipyapi is not lightweight?
 import nipyapi
 import sys
 
