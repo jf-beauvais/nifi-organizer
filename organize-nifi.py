@@ -14,15 +14,24 @@ COMPONENT_TYPE_FUNNEL = 'FUNNEL'
 
 ### Define component type to component dimensions map here ###
 # Tuple represents (width, height) of component
+# We define a lambda for each component type that accepts the entity object returned as part of the process group
+# flow and produces the dimensions of the component. For most component types, the size is fixed, but this allows us
+# to support labels, which can be resized.
 COMPONENT_DIMENSIONS_MAP = {
-    COMPONENT_TYPE_PROCESS_GROUP: (380, 175),
-    COMPONENT_TYPE_REMOTE_PROCESS_GROUP: (380, 160),
-    COMPONENT_TYPE_PROCESSOR: (370, 130),
-    COMPONENT_TYPE_INPUT_PORT: (240, 50),
-    COMPONENT_TYPE_OUTPUT_PORT: (240, 50),
-    # TODO: Allow for parsing of label dimensions from Nifi API responses
-    COMPONENT_TYPE_LABEL: (150, 150),
-    COMPONENT_TYPE_FUNNEL: (50, 50)
+    COMPONENT_TYPE_PROCESS_GROUP: \
+        lambda entity: (380, 175),
+    COMPONENT_TYPE_REMOTE_PROCESS_GROUP: \
+        lambda entity: (380, 160),
+    COMPONENT_TYPE_PROCESSOR: \
+        lambda entity: (370, 130),
+    COMPONENT_TYPE_INPUT_PORT: \
+        lambda entity: (240, 50),
+    COMPONENT_TYPE_OUTPUT_PORT: \
+        lambda entity: (240, 50),
+    COMPONENT_TYPE_LABEL: \
+        lambda entity: (entity.dimensions.width, entity.dimensions.height),
+    COMPONENT_TYPE_FUNNEL: \
+        lambda entity: (50, 50)
 }
 
 # Define map of component type to lambda that updates the component's position
@@ -95,29 +104,31 @@ graph.graph_attr['splines'] = 'line' # draw edges as lines
 graph.graph_attr['overlap'] = 'scale' # prevent node (and hopefully edge?) overlap
 componentList = []
 
+# Add each component to the component list, along with the component entity object
 for processGroup in targetFlow.process_group_flow.flow.process_groups:
-    componentList.append(NifiComponentReference(processGroup.id, COMPONENT_TYPE_PROCESS_GROUP))
+    componentList.append((NifiComponentReference(processGroup.id, COMPONENT_TYPE_PROCESS_GROUP), processGroup))
 
 for remoteProcessGroup in targetFlow.process_group_flow.flow.remote_process_groups:
-    componentList.append(NifiComponentReference(remoteProcessGroup.id, COMPONENT_TYPE_REMOTE_PROCESS_GROUP))
+    componentList.append((NifiComponentReference(remoteProcessGroup.id, COMPONENT_TYPE_REMOTE_PROCESS_GROUP), remoteProcessGroup))
 
 for processor in targetFlow.process_group_flow.flow.processors:
-    componentList.append(NifiComponentReference(processor.id, COMPONENT_TYPE_PROCESSOR))
+    componentList.append((NifiComponentReference(processor.id, COMPONENT_TYPE_PROCESSOR), processor))
 
 for inputPort in targetFlow.process_group_flow.flow.input_ports:
-    componentList.append(NifiComponentReference(inputPort.id, COMPONENT_TYPE_INPUT_PORT))
+    componentList.append((NifiComponentReference(inputPort.id, COMPONENT_TYPE_INPUT_PORT), inputPort))
 
 for outputPort in targetFlow.process_group_flow.flow.output_ports:
-    componentList.append(NifiComponentReference(outputPort.id, COMPONENT_TYPE_OUTPUT_PORT))
+    componentList.append((NifiComponentReference(outputPort.id, COMPONENT_TYPE_OUTPUT_PORT), outputPort))
 
 for label in targetFlow.process_group_flow.flow.labels:
-    componentList.append(NifiComponentReference(label.id, COMPONENT_TYPE_LABEL))
+    componentList.append((NifiComponentReference(label.id, COMPONENT_TYPE_LABEL), label))
 
 for funnel in targetFlow.process_group_flow.flow.funnels:
-    componentList.append(NifiComponentReference(funnel.id, COMPONENT_TYPE_FUNNEL))
+    componentList.append((NifiComponentReference(funnel.id, COMPONENT_TYPE_FUNNEL), funnel))
 
 for component in componentList:
-    (width, height) = COMPONENT_DIMENSIONS_MAP.get(component.typeName)
+    (componentRef, entity) = component
+    (width, height) = COMPONENT_DIMENSIONS_MAP.get(componentRef.typeName)(entity)
     # Scale down the size of the drawing. This seems to be needed to reconcile the fact that the scale of Nifi coordinates
     # is much larger than the inches scale of Pygraphviz, even though the Nifi canvas is entirely virtual
     # Tuning this value determines how compact the drawing is. A larger value will make the drawing more compact, but risks
@@ -126,7 +137,7 @@ for component in componentList:
     width = width / ratio
     height = height / ratio
     # Clear the label of the node to prevent warnings related to the label running over the bounding-box edges
-    graph.add_node(component, width=width, height=height, shape='box', label='')
+    graph.add_node(componentRef, width=width, height=height, shape='box', label='')
 
 # Add edges from flow to graph
 print 'Adding edges'
@@ -160,6 +171,7 @@ for connection in targetFlow.process_group_flow.flow.connections:
     graph.add_edge(source, destination)
 
 # Invoke layout engine
+# TODO: Consider writing our own layout algorithm that lays things out left-to-right like a data flow?
 print 'Invoking layout engine'
 graph.layout(prog='sfdp') # dot is for directed graphs. sfdp is a force-directed algorithm for large graphs
 
