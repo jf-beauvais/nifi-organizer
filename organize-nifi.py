@@ -70,6 +70,21 @@ targetFlow = nipyapi.nifi.apis.flow_api.FlowApi().get_flow(nifiProcessGroupId)
 print 'Building graph out of Nifi components'
 print 'Adding nodes'
 graph = pygraphviz.AGraph(strict=True, directed=True)
+
+# Configure graph attributes
+# Things to specify:
+# * nodes are boxes
+# * nodes have a fixed width and height
+# * edges are straight lines
+# * edges have a min length, to accommodate the connection box?
+# * nodes cannot overlap
+# * edges should overlap as little as possible
+# * edges should not cross over nodes
+# * choose a graph layout algorithm that draws things in a "dataflow" manner
+graph.node_attr['fixedsize'] = True # use the width and height attributes for the size of the node
+graph.node_attr['shape'] = 'box' # use boxes to represent nodes
+graph.graph_attr['splines'] = 'line' # draw edges as lines
+graph.graph_attr['overlap'] = 'scale' # prevent node (and hopefully edge?) overlap
 componentList = []
 
 for processGroup in targetFlow.process_group_flow.flow.process_groups:
@@ -95,19 +110,50 @@ for funnel in targetFlow.process_group_flow.flow.funnels:
 
 for component in componentList:
     (width, height) = COMPONENT_DIMENSIONS_MAP.get(component.typeName)
-    graph.add_node(component, width=width, height=height)
+    # Scale down the size of the drawing. This seems to be needed to reconcile the fact that the scale of Nifi coordinates
+    # is much larger than the inches scale of Pygraphviz, even though the Nifi canvas is entirely virtual
+    # Tuning this value determines how compact the drawing is. A larger value will make the drawing more compact, but risks
+    # having edges overlap nodes. A smaller value makes the drawing more spread-out
+    ratio = 40.0
+    width = width / ratio
+    height = height / ratio
+    # Clear the label of the node to prevent warnings related to the label running over the bounding-box edges
+    graph.add_node(component, width=width, height=height, shape='box', label='')
 
 # Add edges from flow to graph
 print 'Adding edges'
 for connection in targetFlow.process_group_flow.flow.connections:
     # TODO: Map type values that can come back from Nifi here to our personally-defined component type enum (done?)
-    source = NifiComponentReference(connection.component.source.id, connection.component.source.type)
-    destination = NifiComponentReference(connection.component.destination.id, connection.component.destination.type)
+    sourceRef = connection.component.source
+    sourceId = ''
+    sourceType = ''
+    # If the group ID is not the target process group ID, this is an input port nested in another component
+    # (probably a child process group), so use the group ID as the component ID when adding the edge, since the parent
+    # component is what is actually rendered in the Nifi canvas
+    # TODO: What does a remote process group input port look like at either end of a connection?
+    if (sourceRef.group_id != nifiProcessGroupId):
+        sourceId = sourceRef.group_id
+        sourceType = COMPONENT_TYPE_PROCESS_GROUP
+    else:
+        sourceId = sourceRef.id
+        sourceType = sourceRef.type
+    source = NifiComponentReference(sourceId, sourceType)
+
+    destinationRef = connection.component.destination
+    destinationId = ''
+    destinationType = ''
+    if (destinationRef.group_id != nifiProcessGroupId):
+        destinationId = destinationRef.group_id
+        destinationType = COMPONENT_TYPE_PROCESS_GROUP
+    else:
+        destinationId = destinationRef.id
+        destinationType = destinationRef.type
+    destination = NifiComponentReference(destinationId, destinationType)
     graph.add_edge(source, destination)
 
 # Invoke layout engine
 print 'Invoking layout engine'
-graph.layout()
+graph.layout(prog='sfdp') # dot is for directed graphs. sfdp is a force-directed algorithm for large graphs
 
 # Iterate over graph nodes, submitting API calls to Nifi to re-position corresponding Nifi component
 print 'Updating components on Nifi'
@@ -124,7 +170,6 @@ for node in graph.nodes():
     newPosition = nipyapi.nifi.models.position_dto.PositionDTO(newX, newY)
     print 'component id ' + nifiComponentId + ' type ' + nifiComponentType + ' newX ' + str(newX) + ' newY ' + str(newY)
 
-    # TODO: Can't just submit ID + position. Have to include original content as well
     # TODO: Create API objects once and reuse them
     if nifiComponentType == COMPONENT_TYPE_PROCESS_GROUP:
         processGroup = nipyapi.nifi.apis.process_groups_api.ProcessGroupsApi().get_process_group(nifiComponentId)
@@ -137,8 +182,16 @@ for node in graph.nodes():
         nipyapi.nifi.apis.remote_process_groups_api.RemoteProcessGroupsApi().update_remote_process_group(nifiComponentId, remoteProcessGroup)
 
     elif nifiComponentType == COMPONENT_TYPE_PROCESSOR:
-        processor = nipyapi.nifi.apis.processors_api.ProcessorsApi().get_processor(nifiComponentId)
-        processor.component.position = newPosition
+        retrievedProcessor = nipyapi.nifi.apis.processors_api.ProcessorsApi().get_processor(nifiComponentId)
+
+        processorDto = nipyapi.nifi.models.ProcessorDTO()
+        processorDto.position = newPosition
+        processorDto.id = nifiComponentId
+        processor = nipyapi.nifi.models.ProcessorEntity()
+        processor.component = processorDto
+        processor.revision = retrievedProcessor.revision
+        processor.id = nifiComponentId
+
         nipyapi.nifi.apis.processors_api.ProcessorsApi().update_processor(nifiComponentId, processor)
 
     elif nifiComponentType == COMPONENT_TYPE_INPUT_PORT:
