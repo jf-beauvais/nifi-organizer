@@ -55,14 +55,24 @@ if len(sys.argv) != 3:
 (nifiRootUrl, nifiProcessGroupId) = (sys.argv[1], sys.argv[2])
 
 # Verify connection to Nifi instance
-# TODO: What happens if the Nifi URL is invalid?
 print 'Connecting to Nifi'
 nipyapi.config.nifi_config.host = nifiRootUrl
+try:
+    nipyapi.nifi.apis.resources_api.ResourcesApi().get_resources()
+except Exception as e:
+    sys.stderr.write("Encountered error while testing connection to Nifi cluster:\n")
+    sys.stderr.write(str(e) + "\n")
+    sys.exit(2)
 
 # Verify that process group exists
-# TODO: What happens if the process group doesn't exist?
 print 'Getting flow for process group ' + nifiProcessGroupId
-targetFlow = nipyapi.nifi.apis.flow_api.FlowApi().get_flow(nifiProcessGroupId)
+targetFlow = None
+try:
+    targetFlow = nipyapi.nifi.apis.flow_api.FlowApi().get_flow(nifiProcessGroupId)
+except Exception as e:
+    sys.stderr.write("Encountered error while fetching information about target flow:\n")
+    sys.stderr.write(str(e) + "\n")
+    sys.exit(3)
 
 # Scrape process group for all components
 # Load components into a graph
