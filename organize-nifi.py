@@ -196,13 +196,29 @@ for node in graph.nodes():
     newPosition = nipyapi.nifi.models.position_dto.PositionDTO(newX, newY)
 
     if nifiComponentType == COMPONENT_TYPE_PROCESS_GROUP:
-        processGroup = processGroupsApi.get_process_group(nifiComponentId)
-        processGroup.component.position = newPosition
+        retrievedProcessGroup = processGroupsApi.get_process_group(nifiComponentId)
+
+        processGroupDto = nipyapi.nifi.models.ProcessGroupDTO()
+        processGroupDto.position = newPosition
+        processGroupDto.id = nifiComponentId
+        processGroup = nipyapi.nifi.models.ProcessGroupEntity()
+        processGroup.component = processGroupDto
+        processGroup.revision = retrievedProcessGroup.revision
+        processGroup.id = nifiComponentId
+
         processGroupsApi.update_process_group(nifiComponentId, processGroup)
 
     elif nifiComponentType == COMPONENT_TYPE_REMOTE_PROCESS_GROUP:
-        remoteProcessGroup = remoteProcessGroupsApi.get_remote_process_group(nifiComponentId)
-        remoteProcessGroup.component.position = newPosition
+        retrievedRemoteProcessGroup = remoteProcessGroupsApi.get_remote_process_group(nifiComponentId)
+
+        remoteProcessGroupDto = nipyapi.nifi.models.RemoteProcessGroupDTO()
+        remoteProcessGroupDto.position = newPosition
+        remoteProcessGroupDto.id = nifiComponentId
+        remoteProcessGroup = nipyapi.nifi.models.RemoteProcessGroupEntity()
+        remoteProcessGroup.component = remoteProcessGroupDto
+        remoteProcessGroup.revision = retrievedRemoteProcessGroup.revision
+        remoteProcessGroup.id = nifiComponentId
+
         remoteProcessGroupsApi.update_remote_process_group(nifiComponentId, remoteProcessGroup)
 
     elif nifiComponentType == COMPONENT_TYPE_PROCESSOR:
@@ -219,8 +235,16 @@ for node in graph.nodes():
         processorsApi.update_processor(nifiComponentId, processor)
 
     elif nifiComponentType == COMPONENT_TYPE_INPUT_PORT:
-        inputPort = inputPortsApi.get_input_port(nifiComponentId)
-        inputPort.component.position = newPosition
+        retrievedInputPort = inputPortsApi.get_input_port(nifiComponentId)
+
+        inputPortDto = nipyapi.nifi.models.PortDTO()
+        inputPortDto.position = newPosition
+        inputPortDto.id = nifiComponentId
+        inputPort = nipyapi.nifi.models.PortEntity()
+        inputPort.component = inputPortDto
+        inputPort.revision = retrievedInputPort.revision
+        inputPort.id = nifiComponentId
+
         inputPortsApi.update_input_port(nifiComponentId, inputPort)
 
     elif nifiComponentType == COMPONENT_TYPE_OUTPUT_PORT:
@@ -237,13 +261,29 @@ for node in graph.nodes():
         outputPortsApi.update_output_port(nifiComponentId, outputPort)
 
     elif nifiComponentType == COMPONENT_TYPE_LABEL:
-        label = labelsApi.get_label(nifiComponentId)
-        label.component.position = newPosition
+        retrievedLabel = labelsApi.get_label(nifiComponentId)
+
+        labelDto = nipyapi.nifi.models.LabelDTO()
+        labelDto.position = newPosition
+        labelDto.id = nifiComponentId
+        label = nipyapi.nifi.models.LabelEntity()
+        label.component = labelDto
+        label.revision = retrievedLabel.revision
+        label.id = nifiComponentId
+
         labelsApi.update_label(nifiComponentId, label)
 
     elif nifiComponentType == COMPONENT_TYPE_FUNNEL:
-        funnel = funnelsApi.get_funnel(nifiComponentId)
-        funnel.component.position = newPosition
+        retrievedFunnel = funnelsApi.get_funnel(nifiComponentId)
+
+        funnelDto = nipyapi.nifi.models.FunnelDTO()
+        funnelDto.position = newPosition
+        funnelDto.id = nifiComponentId
+        funnel = nipyapi.nifi.models.FunnelEntity()
+        funnel.component = funnelDto
+        funnel.revision = retrievedFunnel.revision
+        funnel.id = nifiComponentId
+
         funnelsApi.update_funnel(nifiComponentId, funnel)
         
     else:
