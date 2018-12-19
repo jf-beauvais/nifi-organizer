@@ -49,7 +49,6 @@ class NifiComponentReference:
 
 # For converting back to a NifiComponentReference instance from a string-serialized instance
 # Since we can't have multiple constructors or static methods, this has to be defined externally
-# TODO: Declare separator string as a constant in the class? At the top of the file?
 def constructNifiReferenceFromString(s):
     (id, typeName) = s.split('___')
     return NifiComponentReference(id, typeName)
@@ -143,7 +142,6 @@ for component in componentList:
 print 'Adding edges'
 remotePortTypes = ['REMOTE_INPUT_PORT', 'REMOTE_OUTPUT_PORT']
 for connection in targetFlow.process_group_flow.flow.connections:
-    # TODO: Map type values that can come back from Nifi here to our personally-defined component type enum (done?)
     sourceRef = connection.component.source
     sourceId = ''
     sourceType = ''
