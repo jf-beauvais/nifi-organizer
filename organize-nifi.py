@@ -224,8 +224,16 @@ for node in graph.nodes():
         inputPortsApi.update_input_port(nifiComponentId, inputPort)
 
     elif nifiComponentType == COMPONENT_TYPE_OUTPUT_PORT:
-        outputPort = outputPortsApi.get_output_port(nifiComponentId)
-        outputPort.component.position = newPosition
+        retrievedOutputPort = outputPortsApi.get_output_port(nifiComponentId)
+
+        outputPortDto = nipyapi.nifi.models.PortDTO()
+        outputPortDto.position = newPosition
+        outputPortDto.id = nifiComponentId
+        outputPort = nipyapi.nifi.models.PortEntity()
+        outputPort.component = outputPortDto
+        outputPort.revision = retrievedOutputPort.revision
+        outputPort.id = nifiComponentId
+
         outputPortsApi.update_output_port(nifiComponentId, outputPort)
 
     elif nifiComponentType == COMPONENT_TYPE_LABEL:
