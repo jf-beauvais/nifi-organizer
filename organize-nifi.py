@@ -141,18 +141,21 @@ for component in componentList:
 
 # Add edges from flow to graph
 print 'Adding edges'
+remotePortTypes = ['REMOTE_INPUT_PORT', 'REMOTE_OUTPUT_PORT']
 for connection in targetFlow.process_group_flow.flow.connections:
     # TODO: Map type values that can come back from Nifi here to our personally-defined component type enum (done?)
     sourceRef = connection.component.source
     sourceId = ''
     sourceType = ''
-    # If the group ID is not the target process group ID, this is an input port nested in another component
-    # (probably a child process group), so use the group ID as the component ID when adding the edge, since the parent
+    # If the group ID is not the target process group ID, this is an input port nested in another component,
+    # so use the group ID as the component ID when adding the edge, since the parent
     # component is what is actually rendered in the Nifi canvas
-    # TODO: What does a remote process group input port look like at either end of a connection?
     if (sourceRef.group_id != nifiProcessGroupId):
         sourceId = sourceRef.group_id
-        sourceType = COMPONENT_TYPE_PROCESS_GROUP
+        if (sourceRef.type in remotePortTypes):
+            sourceType = COMPONENT_TYPE_REMOTE_PROCESS_GROUP
+        else:
+            sourceType = COMPONENT_TYPE_PROCESS_GROUP
     else:
         sourceId = sourceRef.id
         sourceType = sourceRef.type
@@ -163,7 +166,10 @@ for connection in targetFlow.process_group_flow.flow.connections:
     destinationType = ''
     if (destinationRef.group_id != nifiProcessGroupId):
         destinationId = destinationRef.group_id
-        destinationType = COMPONENT_TYPE_PROCESS_GROUP
+        if (destinationRef.type in remotePortTypes):
+            destinationType = COMPONENT_TYPE_REMOTE_PROCESS_GROUP
+        else:
+            destinationType = COMPONENT_TYPE_PROCESS_GROUP
     else:
         destinationId = destinationRef.id
         destinationType = destinationRef.type
